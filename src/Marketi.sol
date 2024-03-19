@@ -138,13 +138,12 @@ contract Marketi {
     function completeSale(address seller, address buyer) external {
         Sale storage sale = sales[seller][buyer];
 
-        if (sale.disputeTime + DISPUTE_TIME > block.timestamp)
-            revert("Dispute time not over");
+        if (sale.disputeTime < block.timestamp) revert("Dispute time not over");
         if (sale.status != Status.PendingCompletion) revert("Not selling");
         (uint256 value, , , ) = morpheus.getFeed(sale.feedID);
         if (value < sale.price) revert("Price not met");
         sale.status = Status.Completed;
-        sale.disputeTime = block.timestamp;
+        sale.disputeTime = block.timestamp + DISPUTE_TIME;
 
         token.transfer(seller, sale.price);
     }
@@ -154,8 +153,7 @@ contract Marketi {
         if (sale.status != Status.Completed) revert("Not completed");
         if (msg.sender != seller) revert("Not seller");
         if (sale.isDisputed) revert("Disputed");
-        if (sale.disputeTime + DISPUTE_TIME > block.timestamp)
-            revert("Dispute time not over");
+        if (sale.disputeTime < block.timestamp) revert("Dispute time not over");
         token.transfer(seller, sale.price);
         delete sales[seller][buyer];
     }
